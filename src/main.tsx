@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { RotateCcw, Share2 } from "lucide-react";
+import { Calculator, RotateCcw, Share2 } from "lucide-react";
 import "./styles.css";
 
 type FormState = {
@@ -71,6 +71,11 @@ function App() {
   const electricityCost = electricityUsedKwh * form.electricityCostPerKwh;
   const totalCost = filamentCost + electricityCost;
   const costPerPrintHour = totalPrintHours > 0 ? totalCost / totalPrintHours : 0;
+  const activePreset = PRESETS.find(
+    (preset) =>
+      preset.filamentCostPerKg === form.filamentCostPerKg &&
+      preset.averagePrinterKwhPerHour === form.averagePrinterKwhPerHour,
+  )?.name;
 
   const update = (key: keyof FormState, value: string) => {
     setForm((current) => ({
@@ -100,8 +105,14 @@ function App() {
     <main className="app-shell">
       <section className="intro">
         <div>
-          <p className="eyebrow">Bambu Lab A1 mini</p>
-          <h1>Bambu Print Cost Calculator</h1>
+          <p className="eyebrow">
+            <Calculator aria-hidden="true" size={16} />
+            Bambu Lab A1 mini
+          </p>
+          <h1>Print cost calculator</h1>
+          <p className="intro-copy">
+            Estimate material and electricity costs before you start a print.
+          </p>
         </div>
         <button className="ghost-button" onClick={reset} type="button">
           <RotateCcw aria-hidden="true" size={18} />
@@ -112,17 +123,20 @@ function App() {
       <section className="workspace" aria-label="Print cost calculator">
         <form className="inputs">
           <fieldset>
-            <legend>Print details</legend>
+            <legend>
+              <span>01</span>
+              Print details
+            </legend>
             <div className="time-grid">
               <NumberField
-                label="Print hours"
+                label="Hours"
                 min={0}
                 step={1}
                 value={form.hours}
                 onChange={(value) => update("hours", value)}
               />
               <NumberField
-                label="Print minutes"
+                label="Minutes"
                 min={0}
                 max={59}
                 step={1}
@@ -131,7 +145,8 @@ function App() {
               />
             </div>
             <NumberField
-              label="Filament weight in grams"
+              label="Filament weight"
+              suffix="g"
               min={0}
               step={1}
               value={form.filamentGrams}
@@ -140,24 +155,30 @@ function App() {
           </fieldset>
 
           <fieldset>
-            <legend>Rates</legend>
+            <legend>
+              <span>02</span>
+              Rates
+            </legend>
             <NumberField
-              label="Electricity cost per kWh"
+              label="Electricity"
+              suffix="GBP/kWh"
               min={0}
               step={0.0001}
               value={form.electricityCostPerKwh}
               onChange={(value) => update("electricityCostPerKwh", value)}
             />
             <NumberField
-              label="Filament cost per kg"
+              label="Filament"
+              suffix="GBP/kg"
               min={0}
               step={0.01}
               value={form.filamentCostPerKg}
               onChange={(value) => update("filamentCostPerKg", value)}
             />
             <NumberField
-              helper="0.05-0.09 is a reasonable range depending on material and bed temperature."
-              label="A1 mini average kWh/hour"
+              helper="0.05 to 0.09 is typical depending on material and bed temperature."
+              label="Printer draw"
+              suffix="kWh/hour"
               min={0}
               step={0.001}
               value={form.averagePrinterKwhPerHour}
@@ -168,9 +189,11 @@ function App() {
           <div className="presets" aria-label="Material presets">
             {PRESETS.map((preset) => (
               <button
+                className={activePreset === preset.name ? "is-active" : undefined}
                 key={preset.name}
                 onClick={() => applyPreset(preset)}
                 type="button"
+                aria-pressed={activePreset === preset.name}
               >
                 {preset.name}
               </button>
@@ -179,6 +202,11 @@ function App() {
         </form>
 
         <aside className="results" aria-live="polite">
+          <div className="results-heading">
+            <span>Estimate</span>
+            <strong>{totalPrintHours.toFixed(2)}h</strong>
+          </div>
+
           <div className="total-card">
             <span>Estimated total cost</span>
             <strong>{money(totalCost)}</strong>
@@ -219,6 +247,7 @@ function NumberField({
   min,
   onChange,
   step,
+  suffix,
   value,
 }: {
   helper?: string;
@@ -227,20 +256,24 @@ function NumberField({
   min: number;
   onChange: (value: string) => void;
   step: number;
+  suffix?: string;
   value: number;
 }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input
-        inputMode="decimal"
-        max={max}
-        min={min}
-        onChange={(event) => onChange(event.target.value)}
-        step={step}
-        type="number"
-        value={value}
-      />
+      <span className="input-frame">
+        <input
+          inputMode="decimal"
+          max={max}
+          min={min}
+          onChange={(event) => onChange(event.target.value)}
+          step={step}
+          type="number"
+          value={value}
+        />
+        {suffix ? <em>{suffix}</em> : null}
+      </span>
       {helper ? <small>{helper}</small> : null}
     </label>
   );
